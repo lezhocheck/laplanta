@@ -1,0 +1,8 @@
+flask
+flask-mail
+itsdangerous
+pymongo
+cerberus
+pyjwt
+typing-extensions
+python-dotenv
