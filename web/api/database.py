@@ -64,7 +64,9 @@ class Database:
             'confirmed': False,
             'confirmed_on': None,
             'plants': [],
-            'plants_count': 0
+            'plants_count': 0,
+            'sensors': [],
+            'sensors_count': 0
         }
         record.update(additional_info)    
         self.user_collection.insert_one(record)   
@@ -114,8 +116,8 @@ class Database:
         additional_info = {
             '_id': user['plants_count'],
             'is_active': True,
-            'sensors': [],
-            'sensors_count': 0
+            'sensor_records': [],
+            'sensor_records_count': 0
         }
         plant_obj.update(additional_info)
         new_id = user['plants_count']
