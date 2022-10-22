@@ -15,20 +15,12 @@ regex_dict = {
 }
 
 
-class StatusCode(IntEnum):
-    OK = 200
-    INVALID_PARAMETER = 301
-    USER_ALREADY_EXISTS = 302
-    COULD_NOT_VERIFY = 303
-    USER_DO_NOT_EXIST = 304
-
-
 class ResponseError(Exception, ABC):
     def __init__(self, message: str) -> None:
         super().__init__(message)
 
     @abstractproperty
-    def status_code(self) -> int | Never:
+    def status_code(self) -> int:
         raise NotImplementedError()
 
 
@@ -39,7 +31,7 @@ class InvalidFormatError(ResponseError):
         super().__init__(f'Invalid or missing parameters: {values.keys()}')
 
     @property
-    def status_code(self) -> int | Never:
+    def status_code(self) -> int:
         return 301
 
 
@@ -48,7 +40,7 @@ class DbError(ResponseError):
         super().__init__(message)
 
     @property
-    def status_code(self) -> int | Never:
+    def status_code(self) -> int:
         return 302
 
 
@@ -57,5 +49,5 @@ class TokenError(ResponseError):
         super().__init__(message)
 
     @property
-    def status_code(self) -> int | Never:
+    def status_code(self) -> int:
         return 303        

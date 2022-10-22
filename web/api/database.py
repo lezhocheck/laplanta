@@ -1,4 +1,3 @@
-from turtle import update
 from pymongo import MongoClient
 from .models import PlantExtendedDto, UserDto, UserExtendedDto, PlantDto, PlantResponseDto
 from .utils import DbError, TokenError
@@ -101,7 +100,7 @@ class Database:
     def find_user(self, user: UserDto, filter: dict = None) -> dict:
         return self.user_collection.find_one({'email': user.email}, filter)
 
-    def get_confirmation_date(self, user_email: str) -> datetime | None:
+    def get_confirmation_date(self, user_email: str) -> datetime:
         user = self.user_collection.find_one({'email': user_email})
         if not user or not all(i in user for i in ('confirmed', 'confirmed_on')):
             raise DbError('An error occured on getting information')
@@ -115,7 +114,8 @@ class Database:
         additional_info = {
             '_id': user['plants_count'],
             'is_active': True,
-            'sensors': []
+            'sensors': [],
+            'sensors_count': 0
         }
         plant_obj.update(additional_info)
         new_id = user['plants_count']
