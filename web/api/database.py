@@ -120,10 +120,9 @@ class Database:
             'sensor_records_count': 0
         }
         plant_obj.update(additional_info)
-        new_id = user['plants_count']
-        upd = {'$push': {'plants': plant_obj}, '$set': {'plants_count': new_id + 1}}
+        upd = {'$push': {'plants': plant_obj}, '$inc': {'plants_count': 1}}
         self.user_collection.update_one({'email': plant.user.email}, upd)    
-        return new_id
+        return additional_info['_id']
 
     def get_plant(self, user: UserDto, plant_id: int) -> PlantResponseDto:
         user_record = self.user_collection.find_one({'email': user.email})
@@ -155,6 +154,18 @@ class Database:
         plant_obj = plant.convert_to_dict()
         plant_obj.pop('id') 
         plant_obj['is_active'] = False
-        self.update_plant(PlantExtendedDto(plant_obj, user), plant_id)       
+        self.update_plant(PlantExtendedDto(plant_obj, user), plant_id)      
+
+    def get_sensor(self, user: UserDto, sensor_id: str) -> tuple:
+        value = self.user_collection.find_one({'email': user.email}).get('sensors')
+        if not value:
+            raise DbError('Sensor does not exist')
+        index = -1
+        for i, sensor in enumerate(value):
+            if sensor['_id'] == sensor_id:
+                index = i
+        if index == -1:
+            raise DbError('Sensor does not exist')            
+        return value[index], index     
 
          

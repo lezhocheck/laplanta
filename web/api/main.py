@@ -11,8 +11,3 @@ main = Blueprint('main', __name__)
 @main.route('/')
 def index():
     return 'Welcome to the La-planta API!'
-
-# TODO
-@app.route("/map")
-def api_map():
-    pass

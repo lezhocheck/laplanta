@@ -38,3 +38,6 @@ app.register_blueprint(auth)
 
 from .plants import plants
 app.register_blueprint(plants)
+
+from .sensors import sensors
+app.register_blueprint(sensors)
