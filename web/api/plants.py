@@ -1,72 +1,70 @@
 from flask import Blueprint, request
 from .auth import confirmation_required, Database
-from .models import UserDto, PlantDto, PlantExtendedDto
-from .utils import DbError, ResponseError
-from .utils import exception_handler
+from .models import Plant
+from .utils import DbError
+from bson.objectid import ObjectId
+from bson.errors import InvalidId
+
 
 plants = Blueprint('plants', __name__)
 
 
 @plants.route('/plant', methods=['POST'])
 @confirmation_required
-@exception_handler
-def add_plant(user: UserDto, **kwargs):
-    plant = PlantDto(request.json, user)
+def add_plant(user_id: ObjectId):
+    plant = Plant.from_input_form(request.json)
     db = Database()
-    id = db.add_plant(plant)
-    return {'id': id}    
-
-
-@plants.route('/plant/<plant_id>')
-@confirmation_required
-@exception_handler
-def get_plant(user: UserDto, plant_id: int, **kwargs):
-    try:
-        db = Database()
-        plant = db.get_plant(user, int(plant_id))
-        return plant.convert_to_dict()
-    except ValueError:
-        raise DbError('Invalid plant id')   
-
-
-@plants.route('/plant/<plant_id>', methods=['PUT'])
-@confirmation_required
-@exception_handler
-def update_plant(user: UserDto, plant_id: int, **kwargs):
-    try:
-        if not len(request.json):
-            raise ResponseError('Cannot update with empty params')
-        plant = PlantExtendedDto(request.json, user, required=False)
-        db = Database()
-        db.update_plant(plant, int(plant_id))
-    except ValueError:
-        raise DbError('Invalid plant id') 
-
-
-@plants.route('/plant/<plant_id>/', methods=['DELETE'])
-@confirmation_required
-@exception_handler
-def delete_plant(user: UserDto, plant_id: int, **kwargs):
-    try:
-        db = Database()
-        db.delete_plant(user, int(plant_id))
-    except ValueError:
-        raise DbError('Invalid plant id')
+    id = db.insert_plant(plant, user_id)
+    return {'plant_id': str(id)}
 
 
 @plants.route('/plants')
 @confirmation_required
-@exception_handler
-def get_plants(user: UserDto, **kwargs):
+def get_plants(user_id: ObjectId):
     db = Database()
-    result = db.find_user(user, {'_id': 0, 'plants': 1})
-    if not result:
-        raise DbError('No plants')
-    return result
+    plants = db.get_plants(user_id)
+    def process(plant):
+        result = plant.to_dict_row()
+        result['id'] = str(plant.id)
+        return result
+    plants_obj = list(map(process, plants))
+    return {'plants': plants_obj}
 
 
-# TODO
-@plants.route('/plant/<plant_id>/status')
+@plants.route('/plant/<identifier>')
 @confirmation_required
-def get_plant_status(user: UserDto, plant_id: int, **kwargs):
-    pass
+def get_plant(user_id: ObjectId, identifier: str):
+    try:
+        db = Database()
+        plant = db.get_plant_by_id(ObjectId(identifier))
+        def process(plant):
+            result = plant.to_dict_row()
+            result['id'] = str(plant.id)
+            return result
+        return {'plant': process(plant)}
+    except (InvalidId, TypeError):
+        raise DbError('Invalid plant id')     
+
+
+@plants.route('/plant/<identifier>', methods=['PUT'])
+@confirmation_required
+def update_plant(user_id: ObjectId, identifier: str):
+    try:
+        plant = Plant.from_update_form(request.json)
+        plant.id = ObjectId(identifier)
+        db = Database()
+        db.update_plant(plant, user_id)
+    except (InvalidId, TypeError):
+        raise DbError('Invalid plant id') 
+
+
+@plants.route('/plant/<identifier>', methods=['DELETE'])
+@confirmation_required
+def delete_plant(user_id: ObjectId, identifier: str):
+    try:
+        plant = Plant({'status': 'deleted'})
+        plant.id = ObjectId(identifier)
+        db = Database()
+        db.update_plant(plant, user_id)
+    except (InvalidId, TypeError):
+        raise DbError('Invalid plant id') 

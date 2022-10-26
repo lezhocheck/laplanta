@@ -1,39 +1,46 @@
+from bson.errors import InvalidId
 from pymongo import MongoClient
-from .models import PlantExtendedDto, UserDto, UserExtendedDto, PlantDto, PlantResponseDto
+from .models import *
 from .utils import DbError, TokenError
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
 import jwt
 from bson.json_util import dumps, loads
 from datetime import datetime, timedelta
 from flask import current_app
 from bson.objectid import ObjectId
-from typing import TypeVar
+from typing import TypeVar, Union
 
 
-TokenType = TypeVar('TokenType', bound='Token')
+TokenType = TypeVar('TokenType', bound='IdToken')
 
 
-class Token:
+class IdToken:
     _ENCODING_ALGO = 'HS256'
 
-    def __init__(self, user_id: ObjectId, expire_date: datetime) -> None:
-        self.user_id = user_id
+    def __init__(self, id: ObjectId, expire_date: datetime) -> None:
+        self.id = id
         self.expire_date = expire_date
 
     def encode(self) -> str:
-        key = Token._get_key()
-        obj = {'id': str(self.user_id), 'expire': dumps(self.expire_date)}
-        return jwt.encode(obj, key, algorithm=Token._ENCODING_ALGO) 
+        key = IdToken._get_key()
+        obj = {'id': str(self.id), 'expire': dumps(self.expire_date)}
+        return jwt.encode(obj, key, algorithm=IdToken._ENCODING_ALGO) 
 
     @staticmethod
     def decode(token: str) -> TokenType:
-        key = Token._get_key()
-        decoded = jwt.decode(token, key, algorithms=[Token._ENCODING_ALGO])
+        key = IdToken._get_key()
+        decoded = jwt.decode(token, key, algorithms=[IdToken._ENCODING_ALGO])
         user_id = ObjectId(decoded['id'])
         expire_date = loads(decoded['expire'])
-        if not user_id or not expire_date:
+        current_time = datetime.utcnow()
+        if not user_id or not expire_date or current_time >= expire_date:
             raise TokenError('Token is not valid') 
-        return Token(user_id, expire_date)    
+        return IdToken(user_id, expire_date) 
+
+    @staticmethod
+    def create(id: ObjectId):
+        expire_date = datetime.utcnow() + timedelta(minutes=30)
+        return IdToken(id, expire_date)           
 
     @staticmethod
     def _get_key() -> str:   
@@ -54,118 +61,158 @@ class Database:
     def user_collection(self):
         return self._db['users']    
 
-    def insert_user(self, user: UserExtendedDto) -> None:
-        if self.find_user(user):
+    def insert_user(self, user: User) -> ObjectId:
+        if self.user_exists(user.email):
             raise DbError('User already exists')
-        record = user.convert_to_dict()
-        additional_info = {
-            'password': user.hashed_password,
-            'account_created': datetime.utcnow(),
-            'confirmed': False,
-            'confirmed_on': None,
-            'plants': [],
-            'plants_count': 0,
-            'sensors': [],
-            'sensors_count': 0
-        }
-        record.update(additional_info)    
-        self.user_collection.insert_one(record)   
+        user.account_created = datetime.utcnow()
+        user.password = generate_password_hash(user.password)      
+        record = user.to_dict_row()
+        record.update({'plants': [], 'sensors': [], 'records': []})    
+        result = self.user_collection.insert_one(record)   
+        return result.inserted_id
 
-    def get_token_from_user(self, user: UserDto) -> TokenType:
-        user_record = self.find_user(user)
-        if not user_record:
-            raise DbError('User does not exist')    
-        if not check_password_hash(user_record['password'], user.password):
-            raise DbError('Invalid password') 
-        expire_date = datetime.utcnow() + timedelta(minutes=30)
-        return Token(user_record['_id'], expire_date)      
+    def user_exists(self, value: Union[str, ObjectId]) -> bool:
+        try:
+            _ = self.get_user(value)
+            return True
+        except DbError:
+            return False
 
-    def get_user_from_token(self, token: TokenType) -> UserDto:
-        current_time = datetime.utcnow()
-        if current_time >= token.expire_date:
-            raise TokenError('Token is not valid') 
-        filter = {'_id': 0, 'email': 1, 'password': 1}
-        user = self.user_collection.find_one({'_id': token.user_id}, filter) 
-        if not user:
-            raise TokenError('Token is not valid')  
-        return UserDto(user)   
-
-    def confirm_user_email(self, user_email: str) -> None:
-        user = self.user_collection.find_one({'email': user_email})
-        if not user or not all(i in user for i in ('confirmed', 'confirmed_on')):
-            raise DbError('An error occured on user email confirmation')
-        if user['confirmed']:
-            raise DbError('User email already confirmed')
-        setter = {'$set': {'confirmed': True, 'confirmed_on': datetime.utcnow()}}    
-        self.user_collection.update_one({'_id': user['_id']}, setter)    
-
-    def find_user(self, user: UserDto, filter: dict = None) -> dict:
-        return self.user_collection.find_one({'email': user.email}, filter)
-
-    def get_confirmation_date(self, user_email: str) -> datetime:
-        user = self.user_collection.find_one({'email': user_email})
-        if not user or not all(i in user for i in ('confirmed', 'confirmed_on')):
-            raise DbError('An error occured on getting information')
-        return user['confirmed_on']
-
-    def add_plant(self, plant: PlantDto) -> int:
-        user = self.find_user(plant.user)
-        if not user:
-            raise DbError('An error occured on posting information')
-        plant_obj = plant.convert_to_dict()
-        additional_info = {
-            '_id': user['plants_count'],
-            'is_active': True,
-            'sensor_records': [],
-            'sensor_records_count': 0
-        }
-        plant_obj.update(additional_info)
-        upd = {'$push': {'plants': plant_obj}, '$inc': {'plants_count': 1}}
-        self.user_collection.update_one({'email': plant.user.email}, upd)    
-        return additional_info['_id']
-
-    def get_plant(self, user: UserDto, plant_id: int) -> PlantResponseDto:
-        user_record = self.user_collection.find_one({'email': user.email})
-        if not user_record:
-            raise DbError('An error occured on posting information')
-  
-        if plant_id < 0 or plant_id >= user_record['plants_count']:
-            raise DbError('No plant with such id')
-        plant_obj = user_record['plants'][plant_id]   
-        plant_obj.pop('sensors')
-        plant_obj['id'] = plant_obj.pop('_id')
-        return PlantResponseDto(plant_obj, user)
-
-    def update_plant(self, plant: PlantExtendedDto, plant_id: int) -> None:
-        user = self.user_collection.find_one({'email': plant.user.email})
-        if not user:
-            raise DbError('An error occured on updating information')
-        if plant_id < 0 or plant_id >= user['plants_count']:
-            raise DbError('No plant with such id')
-        plant_obj = user['plants'][plant_id]
-        new_data = plant.convert_to_dict()
-        filtered = {k: v for k, v in new_data.items() if v is not None}
-        plant_obj.update(filtered)    
-        self.user_collection.update_one({'_id': user['_id']}, 
-            {'$set': {f'plants.{plant_id}': plant_obj}})
-
-    def delete_plant(self, user: UserDto, plant_id: int) -> None:
-        plant = self.get_plant(user, plant_id)
-        plant_obj = plant.convert_to_dict()
-        plant_obj.pop('id') 
-        plant_obj['is_active'] = False
-        self.update_plant(PlantExtendedDto(plant_obj, user), plant_id)      
-
-    def get_sensor(self, user: UserDto, sensor_id: str) -> tuple:
-        value = self.user_collection.find_one({'email': user.email}).get('sensors')
+    def get_user(self, value: Union[str, ObjectId]) -> User:
+        value = self.user_collection.find_one({'$or': [{'_id': value}, {'email': value}]})
         if not value:
-            raise DbError('Sensor does not exist')
-        index = -1
-        for i, sensor in enumerate(value):
-            if sensor['_id'] == sensor_id:
-                index = i
-        if index == -1:
-            raise DbError('Sensor does not exist')            
-        return value[index], index     
+            raise DbError('User does not exist')
+        return User(value)    
 
-         
+    def update_user(self, user: User) -> None:
+        if not self.user_exists(user.email) and not self.user_exists(user.id):
+            raise DbError('User does not exist')  
+        record = user.to_dict() 
+        if 'password' in record:
+            record['password'] = generate_password_hash(record['password'])   
+        update_rule = {'$or': [{'_id': user.id}, {'email': user.email}]}
+        result = self.user_collection.update_one(update_rule, {'$set': record})     
+        if not result:
+            raise DbError('User update failed')
+    
+    def insert_plant(self, plant: Plant, user_id: ObjectId) -> ObjectId:
+        if not self.user_exists(user_id):
+            raise DbError('User does not exist')
+        plant_obj = plant.to_dict_row()
+        id = ObjectId()
+        plant_obj.update({'records': [], 'status': 'ok', 
+            '_id': id, 'added_date': datetime.utcnow()})
+        self.user_collection.update_one({'_id': user_id}, 
+            {'$push': {'plants': plant_obj}})  
+        return id        
+
+    def get_plants(self, user_id: ObjectId) -> list[Plant]:
+        plants = self.user_collection.find({'_id': user_id}, {'_id': 0, 'plants': 1})
+        if not plants:
+            raise DbError('User not found') 
+        result = list(plants)  
+        if not len(result):
+            raise DbError('No plants found') 
+        return [Plant(i) for i in result[0]['plants']]
+
+    def get_plant_by_id(self, plant_id: ObjectId) -> Plant:
+        result = self.user_collection.find_one({'plants._id': plant_id}, {'plants.$': 1, '_id': 0})   
+        if not result:
+            raise DbError('Plant not found') 
+        if len(result['plants']) != 1:
+            raise DbError('Invalid plant id')
+        return Plant(result['plants'][0])
+            
+    def update_plant(self, plant: Plant, user_id: ObjectId) -> None:
+        plant_obj = plant.to_dict()
+        setter = {f'plants.$.{k}': v for k, v in plant_obj.items()}
+        result = self.user_collection.update_one({'_id': user_id, 
+            'plants._id': plant.id}, {'$set': setter})
+        if not result:
+            raise DbError('Invalid data')   
+
+    def insert_sensor(self, sensor: Sensor, user_id: ObjectId) -> None:
+        if not self.user_exists(user_id):
+            raise DbError('User does not exist')
+        try:    
+            for p in sensor.plants:
+                _ = self.get_plant_by_id(ObjectId(p))
+        except (InvalidId, TypeError):
+            raise DbError('Invalid plants id')  
+        sensor_obj = sensor.to_dict_row()
+        id = ObjectId()
+        sensor_obj.update({'status': 'working',
+            '_id': id, 'added_date': datetime.utcnow()})
+        self.user_collection.update_one({'_id': user_id}, 
+            {'$push': {'sensors': sensor_obj}})  
+        return id   
+
+    def get_sensors(self, user_id: ObjectId) -> list[Sensor]:
+        sensors = self.user_collection.find({'_id': user_id}, {'_id': 0, 'sensors': 1})
+        if not sensors:
+            raise DbError('User not found') 
+        result = list(sensors)  
+        if not len(result):
+            raise DbError('No sensors found') 
+        return [Sensor(i) for i in result[0]['sensors']]    
+
+    def update_sensor(self, sensor: Sensor, user_id: ObjectId) -> None:
+        sensor_obj = sensor.to_dict()
+        setter = {f'sensors.$.{k}': v for k, v in sensor_obj.items()}
+        result = self.user_collection.update_one({'_id': user_id, 
+            'sensors._id': sensor.id}, {'$set': setter})
+        if not result:
+            raise DbError('Invalid data')     
+
+    def get_sensor_by_id(self, sensor_id: ObjectId) -> Sensor:
+        result = self.user_collection.find_one({'sensors._id': sensor_id}, {'sensors.$': 1, '_id': 0})   
+        if not result:
+            raise DbError('Sensor not found') 
+        if len(result['sensors']) != 1:
+            raise DbError('Invalid sensor id')
+        return Sensor(result['sensors'][0])       
+
+    def get_record_by_id(self, record_id: ObjectId) -> Sensor:
+        result = self.user_collection.find_one({'records._id': record_id}, {'records.$': 1, '_id': 0})   
+        if not result:
+            raise DbError('Record not found') 
+        if len(result['records']) != 1:
+            raise DbError('Invalid record id')
+        return Record(result['records'][0])      
+            
+    def insert_record(self, record: Record) -> ObjectId:
+        sensor = self.get_sensor_by_id(record.sensor_id)
+        if sensor.status in ['deleted']:
+            raise DbError('Sensor is deleted')
+        user_obj = self.user_collection.find_one({'sensors._id': record.sensor_id}, {'_id': 1})
+        if not user_obj:
+            raise DbError('Invalid data')    
+        record.date = datetime.utcnow()
+        record.sensor_id = ObjectId(record.sensor_id)
+        record.sensor_status = sensor.status    
+        record_obj = record.to_dict_row()  
+        record_obj['_id'] = ObjectId()
+        self.user_collection.update_one({'_id': user_obj['_id'], 'sensors._id': sensor.id}, 
+            {'$push': {'records': record_obj}, '$set': {'sensors.$.last_data_sent': datetime.utcnow()}})
+        for p in sensor.plants:
+            self.user_collection.update_one({'_id': user_obj['_id'], 'plants._id': ObjectId(p)},
+                {'$push': {f'plants.$.records': record_obj['_id']}})
+
+    def get_records(self, user_id: ObjectId) -> list[Record]:
+        records = self.user_collection.find({'_id': user_id}, {'_id': 0, 'records': 1})
+        if not records:
+            raise DbError('User not found') 
+        result = list(records)  
+        if not len(result):
+            raise DbError('No records found') 
+        return [Record(i) for i in result[0]['records']]                     
+
+    def get_records_by_plant(self, plant_id: ObjectId) -> list:
+        result = self.user_collection.find_one({'plants._id': plant_id}, 
+            {'plants.$': 1, '_id': 0})
+        if not result:
+            raise DbError('Plant not found') 
+        if len(result['plants']) != 1:
+            raise DbError('Invalid plant id')
+        record_list = result['plants'][0]['records']
+        return [self.get_record_by_id(id) for id in record_list]

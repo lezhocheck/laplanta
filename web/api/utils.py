@@ -1,9 +1,8 @@
-from enum import IntEnum
-from typing_extensions import Never
 from abc import ABC, abstractproperty
 from cerberus import Validator
 from functools import wraps
 from flask import jsonify
+
 
 regex_dict = {
     'user': {
@@ -11,8 +10,7 @@ regex_dict = {
         'email': r"([-!#-'*+/-9=?A-Z^-~]+(\.[-!#-'*+/-9=?A-Z^-~]+)*|\"([]!#-[^-~ \t]|(\\[\t -~]))+\")@([-!#-'*+/-9=?A-Z^-~]+(\.[-!#-'*+/-9=?A-Z^-~]+)*|\[[\t -Z^-~]*])",
         
         'name': r"^[a-zA-Z0-9._'ЁёА-Яа-я іІґҐїЇЄє]{1,50}$",
-        'telephone': r"^(\+\d{1,2}\s?)?1?\-?\.?\s?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$",
-        'sensor_id': r"^[a-zA-Z0-9]{3, 100}$"
+        'telephone': r"^(\+\d{1,2}\s?)?1?\-?\.?\s?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$"
     }
 }
 
@@ -53,13 +51,6 @@ class TokenError(ResponseError):
     @property
     def status_code(self) -> int:
         return 303        
-
-
-def _validate(handlers: dict) -> None:
-    for key, value in handlers.items():
-        if not issubclass(key, Exception) or not isinstance(value, str):
-            raise Exception(f'Invalid dict object')
-
 
 
 def exception_handler(func):

@@ -1,120 +1,113 @@
-from flask import request, jsonify, url_for, current_app
+from flask import request, url_for, current_app
 from flask import Blueprint
-from .utils import ResponseError, DbError, exception_handler
+from .utils import DbError, TokenError, exception_handler
 from functools import wraps
-from .database import Database, UserExtendedDto, UserDto, Token
+from .database import Database, User, IdToken
 from api import serializer, mail
 from flask_mail import Message
 from itsdangerous import SignatureExpired
-from werkzeug.security import generate_password_hash
-from cerberus import Validator
+from bson.objectid import ObjectId
+from werkzeug.security import check_password_hash
+from datetime import datetime
+
 
 auth = Blueprint('auth', __name__)
 
 
 def login_required(func):
     @wraps(func)
+    @exception_handler
     def decorated(*args, **kwargs):
         if 'x-access-token' not in request.headers:
-             return jsonify({'message': 'Token is missing'}), 401
-        try:
-            token = Token.decode(request.headers['x-access-token'])
-            db = Database()
-            user = db.get_user_from_token(token)
-            return func(user, *args, **kwargs)
-        except ResponseError as e:
-            return jsonify({'message': str(e)}), e.status_code     
+            raise TokenError('Token is missing')
+        token = IdToken.decode(request.headers['x-access-token'])
+        db = Database()
+        if not db.user_exists(token.id):
+            raise DbError('Invalid token')
+        return func(token.id, *args, **kwargs)    
     return decorated
 
 
 def confirmation_required(func):
     @wraps(func)
     @login_required
-    def decorated(*args, **kwargs):
-        try:
-            if not isinstance(args[0], UserDto):
-                raise DbError('Expecteed user')
-            db = Database()
-            date = db.get_confirmation_date(args[0].email)
-            if date is None:
-                raise DbError('User is not confirmed')
-            kwargs['confirmation_date'] = date  
-            return func(*args, **kwargs)
-        except ResponseError as e:
-            return jsonify({'message': str(e)}), e.status_code      
+    def decorated(user_id: ObjectId, *args, **kwargs):
+        db = Database()
+        date = db.get_user(user_id).confirmation_date
+        if date is None:
+            raise DbError('Confirm your email first')
+        return func(user_id, *args, **kwargs)   
     return decorated
 
 
 @auth.route('/user/signup', methods=['POST'])
 @exception_handler
 def signup():
-    user = UserExtendedDto(request.json)
+    user = User.from_signup_form(request.json)
     db = Database()
-    db.insert_user(user)
+    id = db.insert_user(user)
+    return {'user_id': str(id)}
 
 
 @auth.route('/user/login', methods=['POST'])
 @exception_handler
 def login():
-    user = UserDto(request.json)
+    user_input = User.from_login_form(request.json)
     db = Database()
-    token = db.get_token_from_user(user)
+    user_data = db.get_user(user_input.email)
+    if not check_password_hash(user_data.password, user_input.password):
+        raise DbError('Invalid email or password')      
+    token = IdToken.create(user_data.id)
     return {'token': token.encode()}
 
 
-@auth.route('/user/confirm', methods=['GET', 'POST'])
+@auth.route('/user/confirmation', methods=['POST'])
 @login_required
-@exception_handler
-def confirm_email(user: UserDto):
-    email = user.email
-    token = serializer.dumps(email, salt=current_app.config['PASSWORD_SALT'])
+def send_confirmation(user_id: ObjectId):
+    db = Database()
+    user = db.get_user(user_id)
+    if user.confirmation_date:
+        raise TokenError('User is already confirmed')
+    token = serializer.dumps(user.email, salt=current_app.config['PASSWORD_SALT'])
     msg = Message('Confirm your email', sender=current_app.config['MAIL_USERNAME'],
-        recipients=[email])
-    link = url_for(f'{auth.name}.{verify_email.__name__}', token=token, _external=True)   
+        recipients=[user.email])
+    link = url_for(f'{auth.name}.{get_confirmation.__name__}', token=token, _external=True)   
     msg.body = f'Your confirmation link is {link}'    
     mail.send(msg)
 
 
-@auth.route('/user/verify/<token>')
+@auth.route('/user/confirmation/<token>')
 @exception_handler
-def verify_email(token):
+def get_confirmation(token: str):
     try:
-        email = serializer.loads(token, salt=current_app.config['PASSWORD_SALT'], max_age=180)
+        email = serializer.loads(token, salt=current_app.config['PASSWORD_SALT'], max_age=360)
         db = Database()
-        db.confirm_user_email(email)
+        if db.get_user(email).confirmation_date:
+            raise TokenError('User is already confirmed')
+        updatation_user = User({'email': email, 'confirmation_date': datetime.utcnow()})
+        db.update_user(updatation_user)
     except SignatureExpired:
-        raise DbError('Invalid link') 
+        raise TokenError('Invalid link') 
 
 
 @auth.route('/user')
 @login_required
-@exception_handler
-def get_user(user: UserDto):
+def get_user(user_id: ObjectId):
     db = Database()
-    filter = {'_id': 0, 'password': 0, 'plants': 0, 'plants_count': 0}
-    user_obj = db.find_user(user, filter)
-    if not user_obj:
-        raise DbError('An error occured')
+    user = db.get_user(user_id)
+    user_obj = user.to_dict_row()
+    user_obj.pop('password')
     return {'user': user_obj}  
 
 
 @auth.route('/user', methods=['PUT'])
 @login_required
-@exception_handler
-def update_user(user: UserDto):
-    schema = UserExtendedDto.get_schema_extention()
-    schema['password'] = {'type': 'string'}
-    validator = Validator(schema)
-    input_value = request.json
-    if not validator.validate(input_value):
-        raise DbError(f'invalid values: {validator.errors.keys()}')
-    filtered = {k: v for k, v in input_value.items() if v is not None}
-    if not len(filtered):
-        raise DbError('Cannot update')
-    if 'password' in filtered:
-        password = filtered['password'] 
-        filtered['password'] = generate_password_hash(password) 
+def update_user(user_id: ObjectId):
+    input_user = User.from_update_form(request.json)
+    obj = input_user.to_dict()
+    if not len(obj):
+        raise DbError('Invalid data')
+    obj['_id'] = user_id  
     db = Database()
-    db.user_collection.update_one({'email': user.email}, 
-        {'$set': filtered})
+    db.update_user(User(obj))
 

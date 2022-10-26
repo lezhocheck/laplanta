@@ -1,83 +1,113 @@
-from flask import Blueprint, request, jsonify
-from .auth import confirmation_required, login_required, Database
-from .models import UserDto
+from flask import Blueprint, request
+from .auth import confirmation_required, Database
+from .models import Sensor, Record
 from .utils import DbError
-from cerberus import Validator
-from datetime import datetime
-from .utils import regex_dict, exception_handler
+from .utils import exception_handler
+from bson.objectid import ObjectId
+from bson.errors import InvalidId
+
 
 sensors = Blueprint('sensors', __name__)
 
+
 @sensors.route('/sensor', methods=['POST'])
 @confirmation_required
-@exception_handler
-def register_sensor(user: UserDto, **kwargs):
+def add_sensor(user_id: ObjectId):
+    sensor = Sensor.from_input_form(request.json)
     db = Database()
-    schema = {'sensor_id': {'type': 'string', 'required': True,
-        'regex': regex_dict['user']['sensor_id']}}
-    validator = Validator(schema)
-    input_value = request.json
-    if not validator.validate(input_value):
-        raise DbError(f'invalid values: {validator.errors.keys()}')
-    value = db.user_collection.find_one({'email': user.email, 'sensors._id': input_value['sensor_id']})
-    if value:
-        raise DbError(f'Sensor is already registered')     
-    info = {
-        '_id': input_value['sensor_id'],
-        'status': 'not accepted',
-        'added': datetime.utcnow()
-    }
-    upd = {'$push': {'sensors': info}, '$inc': {'sensors_count': 1}}
-    db.user_collection.update_one({'email': user.email}, upd)       
- 
+    id = db.insert_sensor(sensor, user_id)
+    return {'sensor_id': str(id)}     
+
+
+@sensors.route('/sensors')
+@confirmation_required
+def get_sensors(user_id: ObjectId):
+    db = Database()
+    sensors = db.get_sensors(user_id)
+    def process(sensor):
+        result = sensor.to_dict_row()
+        result['id'] = str(sensor.id)
+        return result
+    sensors_obj = list(map(process, sensors))
+    return {'sensors': sensors_obj}
+
 
 @sensors.route('/sensor/<identifier>')
 @confirmation_required
-@exception_handler
-def get_sensor(user: UserDto, identifier: str, **kwargs):
-    db = Database()
-    value, _ = db.get_sensor(user, identifier)
-    return value
-
-
-@sensors.route('/sensor/<identifier>', methods=['DELETE'])
-@confirmation_required
-@exception_handler
-def delete_sensor(user: UserDto, identifier: str, **kwargs):
-    db = Database()
-    _, index = db.get_sensor(user, identifier) 
-    db.user_collection.update_one({'email': user.email}, 
-        {'$set': {f'sensors.{index}.status': 'deleted'}})
+def get_sensor(user_id: ObjectId, identifier: str):
+    try:
+        db = Database()
+        sensor = db.get_sensor_by_id(ObjectId(identifier))
+        def process(sensor):
+            result = sensor.to_dict_row()
+            result['id'] = str(sensor.id)
+            return result
+        return {'sensor': process(sensor)}
+    except (InvalidId, TypeError):
+        raise DbError('Invalid sensor id')
 
 
 @sensors.route('/sensor/<identifier>', methods=['PUT'])
 @confirmation_required
+def update_sensor(user_id: ObjectId, identifier: str):
+    try:
+        sensor = Sensor.from_update_form(request.json)
+        sensor.id = ObjectId(identifier)
+        db = Database()
+        db.update_sensor(sensor, user_id)
+    except (InvalidId, TypeError):
+        raise DbError('Invalid sensor id') 
+
+
+@sensors.route('/sensor/<identifier>', methods=['DELETE'])
+@confirmation_required
+def delete_sensor(user_id: ObjectId, identifier: str):
+    try:
+        sensor = Sensor({'status': 'deleted'})
+        sensor.id = ObjectId(identifier)
+        db = Database()
+        db.update_sensor(sensor, user_id)
+    except (InvalidId, TypeError):
+        raise DbError('Invalid sensor id') 
+
+
+@sensors.route('/sensor/<sensor_id>/record', methods=['POST'])
 @exception_handler
-def update_sensor(user: UserDto, identifier: str, **kwargs):
-    db = Database()
-    sensor, index = db.get_sensor(user, identifier)
-    schema = {'status': {'type': 'string', 'required': True, 'forbidden': [sensor['status']]}}
-    validator = Validator(schema)
-    input_value = request.json
-    if not validator.validate(input_value):
-        raise DbError(f'invalid values: {validator.errors.keys()}')  
-    db.user_collection.update_one({'email': user.email}, 
-        {'$set': {f'sensors.{index}.status': input_value['status']}})    
-
-
-# TODO
-@sensors.route('/plant/<plant_id>/record', methods=['POST'])
-def add_sensor_record(user: UserDto, plant_id: int, **kwargs):
-    pass
+def add_record(sensor_id: str):
+    try:
+        db = Database()
+        record = Record.from_input_form(request.json)
+        record.sensor_id = ObjectId(sensor_id)
+        db.insert_record(record)    
+    except (InvalidId, TypeError):
+        raise DbError('Invalid sensor id') 
     
 
-# TODO
-@sensors.route('/sensors/<plant_id>', methods=['POST'])
-@login_required
-def get_sensor_records(user: UserDto, plant_id: int, **kwargs):
+@sensors.route('/plant/<plant_id>/records')
+@confirmation_required
+def get_records_by_plant(user_id: ObjectId, plant_id: str):
+    try:
+        db = Database()
+        records = db.get_records_by_plant(ObjectId(plant_id))
+        def process(record):
+            result = record.to_dict_row()
+            result['id'] = str(record.id)
+            result['sensor_id'] = str(record.sensor_id)
+            return result
+        records_obj = list(map(process, records))    
+        return {'records': records_obj}
+    except (InvalidId, TypeError):
+        raise DbError('Invalid plant id') 
+
+
+@sensors.route('/records')
+@confirmation_required
+def get_records(user_id: ObjectId):
     db = Database()
-    users =  db.get_db()
-    plant = users.find_one({'email': user.email, 'plants._id': plant_id}, {'_id': 0, 'plants': 1})
-    if not plant:
-        raise DbError('Plant do not exist')
-    return jsonify({'message': plant['sensors']}), 200    
+    records = db.get_records(user_id)
+    def process(record):
+        result = record.to_dict_row()
+        result['id'] = str(record.id)
+        return result
+    records_obj = list(map(process, records))
+    return {'records': records_obj}
