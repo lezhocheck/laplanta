@@ -7,17 +7,21 @@ import os
 
 def init_env(app: Flask):
     load_dotenv()
-    variables = {'SECRET_KEY': str, 
-                'PASSWORD_SALT': str, 
-                
-                'MAIL_SERVER': str, 
-                'MAIL_PORT': int, 
-                'MAIL_USERNAME': str, 
-                'MAIL_PASSWORD': str,
-                'MAIL_USE_TLS': bool, 
-                'MAIL_USE_SSL': bool, 
+    variables = {
+        'MONGO_DB_ADMIN_USER': str,
+        'MONGO_DB_ADMIN_PASSWORD': str,
 
-                'UPLOAD_FOLDER': str
+        'SECRET_KEY': str, 
+        'PASSWORD_SALT': str, 
+        
+        'MAIL_SERVER': str, 
+        'MAIL_PORT': int, 
+        'MAIL_USERNAME': str, 
+        'MAIL_PASSWORD': str,
+        'MAIL_USE_TLS': bool, 
+        'MAIL_USE_SSL': bool, 
+
+        'UPLOAD_FOLDER': str
         }
 
     for var, var_type in variables.items():

@@ -2,6 +2,8 @@ from abc import ABC, abstractproperty
 from cerberus import Validator
 from functools import wraps
 from flask import jsonify
+from bson.errors import InvalidId
+from typing import Union
 
 
 regex_dict = {
@@ -24,33 +26,21 @@ class ResponseError(Exception, ABC):
         raise NotImplementedError()
 
 
-class InvalidFormatError(ResponseError):
+class ValidationError(ResponseError):
+    def __init__(self, errors: Union[list[str], None] = None) -> None:
+        message = f'Invalid or missing parameters'
+        additional = '' if errors is None else f': {errors}'
+        super().__init__(message + additional)
+
+    @property
+    def status_code(self) -> int:
+        return 501   
+
+
+class InvalidFormatError(ValidationError):
     def __init__(self, validator: Validator) -> None:
-        self.validator = validator
-        values = self.validator.errors
-        super().__init__(f'Invalid or missing parameters: {values.keys()}')
-
-    @property
-    def status_code(self) -> int:
-        return 301
-
-
-class DbError(ResponseError):
-    def __init__(self, message) -> None:
-        super().__init__(message)
-
-    @property
-    def status_code(self) -> int:
-        return 302
-
-
-class TokenError(ResponseError):
-    def __init__(self, message) -> None:
-        super().__init__(message)
-
-    @property
-    def status_code(self) -> int:
-        return 303        
+        values = validator.errors
+        super().__init__(list(values.keys())) 
 
 
 def exception_handler(func):
@@ -62,5 +52,7 @@ def exception_handler(func):
                 return jsonify({'message': 'Success'}), 200
             return jsonify({'message': result}), 200   
         except ResponseError as e:
-            return jsonify({'message': str(e)}), e.status_code              
+            return jsonify({'message': str(e)}), e.status_code    
+        except InvalidId:
+            return jsonify({'message': 'Invalid id passed'}), 504                 
     return decorated

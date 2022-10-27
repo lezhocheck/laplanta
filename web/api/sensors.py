@@ -1,10 +1,8 @@
 from flask import Blueprint, request
 from .auth import confirmation_required, Database
 from .models import Sensor, Record
-from .utils import DbError
 from .utils import exception_handler
 from bson.objectid import ObjectId
-from bson.errors import InvalidId
 
 
 sensors = Blueprint('sensors', __name__)
@@ -24,90 +22,57 @@ def add_sensor(user_id: ObjectId):
 def get_sensors(user_id: ObjectId):
     db = Database()
     sensors = db.get_sensors(user_id)
-    def process(sensor):
-        result = sensor.to_dict_row()
-        result['id'] = str(sensor.id)
-        return result
-    sensors_obj = list(map(process, sensors))
+    sensors_obj = list(map(lambda x: x.to_dict_with_id(), sensors))
     return {'sensors': sensors_obj}
 
 
 @sensors.route('/sensor/<identifier>')
 @confirmation_required
-def get_sensor(user_id: ObjectId, identifier: str):
-    try:
-        db = Database()
-        sensor = db.get_sensor_by_id(ObjectId(identifier))
-        def process(sensor):
-            result = sensor.to_dict_row()
-            result['id'] = str(sensor.id)
-            return result
-        return {'sensor': process(sensor)}
-    except (InvalidId, TypeError):
-        raise DbError('Invalid sensor id')
+def get_sensor(_, identifier: str):
+    db = Database()
+    sensor = db.get_sensor_by_id(ObjectId(identifier))
+    return {'sensor': sensor.to_dict_with_id()}
 
 
 @sensors.route('/sensor/<identifier>', methods=['PUT'])
 @confirmation_required
 def update_sensor(user_id: ObjectId, identifier: str):
-    try:
-        sensor = Sensor.from_update_form(request.json)
-        sensor.id = ObjectId(identifier)
-        db = Database()
-        db.update_sensor(sensor, user_id)
-    except (InvalidId, TypeError):
-        raise DbError('Invalid sensor id') 
+    sensor = Sensor.from_update_form(request.json)
+    sensor.id = ObjectId(identifier)
+    db = Database()
+    db.update_sensor(sensor, user_id) 
 
 
 @sensors.route('/sensor/<identifier>', methods=['DELETE'])
 @confirmation_required
 def delete_sensor(user_id: ObjectId, identifier: str):
-    try:
-        sensor = Sensor({'status': 'deleted'})
-        sensor.id = ObjectId(identifier)
-        db = Database()
-        db.update_sensor(sensor, user_id)
-    except (InvalidId, TypeError):
-        raise DbError('Invalid sensor id') 
+    sensor = Sensor({'status': 'deleted'})
+    sensor.id = ObjectId(identifier)
+    db = Database()
+    db.update_sensor(sensor, user_id)
 
 
 @sensors.route('/sensor/<sensor_id>/record', methods=['POST'])
 @exception_handler
 def add_record(sensor_id: str):
-    try:
-        db = Database()
-        record = Record.from_input_form(request.json)
-        record.sensor_id = ObjectId(sensor_id)
-        db.insert_record(record)    
-    except (InvalidId, TypeError):
-        raise DbError('Invalid sensor id') 
+    db = Database()
+    record = Record.from_input_form(request.json)
+    record.sensor_id = ObjectId(sensor_id)
+    db.insert_record(record)    
     
 
 @sensors.route('/plant/<plant_id>/records')
 @confirmation_required
-def get_records_by_plant(user_id: ObjectId, plant_id: str):
-    try:
-        db = Database()
-        records = db.get_records_by_plant(ObjectId(plant_id))
-        def process(record):
-            result = record.to_dict_row()
-            result['id'] = str(record.id)
-            result['sensor_id'] = str(record.sensor_id)
-            return result
-        records_obj = list(map(process, records))    
-        return {'records': records_obj}
-    except (InvalidId, TypeError):
-        raise DbError('Invalid plant id') 
-
+def get_records_by_plant(_, plant_id: str):
+    db = Database()
+    records = db.get_records_by_plant(ObjectId(plant_id))
+    records_obj = list(map(lambda x: x.to_dict_with_id(), records))    
+    return {'records': records_obj}
 
 @sensors.route('/records')
 @confirmation_required
 def get_records(user_id: ObjectId):
     db = Database()
     records = db.get_records(user_id)
-    def process(record):
-        result = record.to_dict_row()
-        result['id'] = str(record.id)
-        return result
-    records_obj = list(map(process, records))
+    records_obj = list(map(lambda x: x.to_dict_with_id(), records))
     return {'records': records_obj}
