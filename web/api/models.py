@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from .utils import ValidationError, InvalidFormatError, regex_dict
 from cerberus import Validator
 from bson.objectid import ObjectId
+from langcodes import Language
 
 
 class BaseDto(ABC):
@@ -13,7 +14,10 @@ class BaseDto(ABC):
     def validate(schema: dict, obj: dict) -> None:
         validator = Validator(schema)
         if not validator.validate(obj):
-            raise InvalidFormatError(validator)   
+            raise InvalidFormatError(validator) 
+        language = obj.get('language')
+        if 'language' in schema and language and not Language.is_valid(language):
+            raise ValidationError(['language'])          
 
     @abstractmethod
     def to_dict_row(self) -> dict:
@@ -48,6 +52,7 @@ class User(BaseDto):
         self.telephone = obj.get('telephone')
         self.account_created = obj.get('account_created') 
         self.confirmation_date = obj.get('confirmation_date')
+        self.language = obj.get('language')
 
     @staticmethod
     def from_signup_form(obj: dict) -> 'User':
@@ -58,7 +63,8 @@ class User(BaseDto):
             'name': {'type': 'string', 
                 'regex': regex_dict['user']['name'], 'required': True},
             'telephone': {'type': 'string', 
-                'regex': regex_dict['user']['telephone'], 'required': True}
+                'regex': regex_dict['user']['telephone'], 'required': True},
+            'language': {'type': 'string'}
         }
         BaseDto.validate(schema, obj)
         return User(obj) 
@@ -80,7 +86,8 @@ class User(BaseDto):
             'name': {'type': 'string', 
                 'regex': regex_dict['user']['name']},
             'telephone': {'type': 'string', 
-                'regex': regex_dict['user']['telephone']}
+                'regex': regex_dict['user']['telephone']},
+            'language': {'type': 'string'}
         }
         BaseDto.validate(schema, obj)
         return User(obj) 
@@ -92,7 +99,8 @@ class User(BaseDto):
             'name': self.name,
             'telephone': self.telephone,
             'account_created': self.account_created,
-            'confirmation_date': self.confirmation_date
+            'confirmation_date': self.confirmation_date,
+            'language': self.language
         }  
 
 

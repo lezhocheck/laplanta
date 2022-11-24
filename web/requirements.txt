@@ -6,3 +6,4 @@ cerberus
 pyjwt
 typing-extensions
 python-dotenv
+langcodes

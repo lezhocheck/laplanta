@@ -31,7 +31,7 @@ class Database:
         return self._db['users']    
 
     def insert_user(self, user: User) -> ObjectId:
-        if self._user_exists(user.email):
+        if self.user_exists(user.email):
             raise DbError('User already exists')
         user.account_created = datetime.utcnow()
         user.password = generate_password_hash(user.password)      

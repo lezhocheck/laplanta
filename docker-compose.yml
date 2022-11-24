@@ -6,7 +6,7 @@ services:
     env_file:  
       - ./.env  
     ports:
-      - 4999:4999
+      - 9999:9999
     links:
       - db  
 
