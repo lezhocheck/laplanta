@@ -21,6 +21,20 @@ services:
       MONGO_INITDB_ROOT_USERNAME: $MONGO_DB_ADMIN_USER
       MONGO_INITDB_ROOT_PASSWORD: $MONGO_DB_ADMIN_PASSWORD
       MONGO_INITDB_DATABASE: $MONGO_DB_ADMIN_USER  
+
+
+  front:
+    build: 
+      context: ./front
+      target: development
+    env_file:  
+      - ./.env  
+    ports:
+      - 3000:3000
+    volumes:
+      - ./front/src:/usr/src/front/src  
+    links:
+      - web     
       
 
   mongo-express:
