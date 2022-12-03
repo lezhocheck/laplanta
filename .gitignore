@@ -10,7 +10,6 @@ venv.bak/
 
 */node_modules
 */build
-public
 /node_modules
 */.pnp
 .pnp.js
