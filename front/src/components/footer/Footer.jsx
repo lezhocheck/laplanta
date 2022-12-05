@@ -1,7 +1,7 @@
 import React from 'react';
 import {RiPlantLine} from 'react-icons/ri';
 import {AiOutlineHome, AiOutlineMail, AiOutlinePhone} from 'react-icons/ai';
-import { MDBFooter, MDBContainer, MDBRow, MDBCol} from 'mdb-react-ui-kit';
+import {MDBFooter, MDBContainer, MDBRow, MDBCol} from 'mdb-react-ui-kit';
 import {BsFacebook, BsInstagram, BsTelegram, BsGithub, BsTwitter} from 'react-icons/bs';
 import {useTranslation} from 'react-i18next';
 

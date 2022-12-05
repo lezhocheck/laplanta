@@ -2,6 +2,7 @@ from flask import Flask
 from flask_mail import Mail
 from itsdangerous import URLSafeTimedSerializer
 from dotenv import load_dotenv
+from flask_cors import CORS
 import os
 
 
@@ -29,6 +30,7 @@ def init_env(app: Flask):
 
 
 app = Flask(__name__, static_folder='./static')
+CORS(app)
 init_env(app)
 
 mail = Mail(app)

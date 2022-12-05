@@ -6,7 +6,7 @@ import {RiPlantLine} from 'react-icons/ri';
 import {FaUserAlt, FaLanguage} from 'react-icons/fa';
 import {useTranslation} from 'react-i18next';
 
-export default function Header() {
+const Header = () => {
     const {t, i18n} = useTranslation();
 
     function changeLanguage(language) {
@@ -32,3 +32,5 @@ export default function Header() {
         </Navbar>
     );
 }
+
+export default Header;

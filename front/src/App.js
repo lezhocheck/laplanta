@@ -1,32 +1,32 @@
 import React from 'react';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import "./App.scss";
-import favicon from "./static/favicon.png";
-import Header from './components/header/Header';
-import Footer from './components/footer/Footer';
-import CoverSection from './components/coversection/CoverSection';
-import Blog from './components/blog/Blog';
-import Container from 'react-bootstrap/Container';
-import {Helmet} from 'react-helmet';
-import './i18n/config';
+import Layout from './components/layout/Layout';
+import {Route, Routes} from 'react-router-dom';
+import Login from './components/auth/Login';
+import Home from './components/home/Home';
+import Signup from './components/auth/Signup';
+import Missing from './components/auth/Missing';
+import RequireAuth from './components/requireauth/requireAuth';
 
-function App() {
-  return (
-    <div className="application">
-      <Helmet>
-          <meta charSet="utf-8" />
-          <title>Laplanta</title>
-          <link rel="icon" href={favicon}/>
-          <style>{"body { background-color: #212529; }"}</style>
-      </Helmet>
-      <Container className="App bg-dark" fluid>
-        <Header/>
-        <CoverSection/>
-        <Blog/>
-        <Footer/>
-      </Container>
-    </div>
-  );
+const App = () => {
+    return (
+        <Routes>
+            <Route path="/" element={<Layout/>}> 
+                {/* Public routes */}
+                <Route path="/" element={<Home/>}/>
+                <Route path="login" element={<Login/>}/>
+                <Route path="signup" element={<Signup/>}/>
+                
+                {/* TODO: Protected routes */}
+                <Route element={<RequireAuth/>}>
+
+                </Route>
+                
+                {/* Catch all */}
+                <Route path="*" element={<Missing/>}/>
+            </Route>
+        </Routes>
+    );
 }
 
 export default App;

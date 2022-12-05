@@ -7,3 +7,4 @@ pyjwt
 typing-extensions
 python-dotenv
 langcodes
+flask-cors
