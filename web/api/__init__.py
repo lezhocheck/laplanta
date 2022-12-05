@@ -4,6 +4,7 @@ from itsdangerous import URLSafeTimedSerializer
 from dotenv import load_dotenv
 from flask_cors import CORS
 import os
+from flask_jwt_extended import JWTManager
 
 
 def init_env(app: Flask):
@@ -32,6 +33,9 @@ def init_env(app: Flask):
 app = Flask(__name__, static_folder='./static')
 CORS(app)
 init_env(app)
+
+app.config['JWT_SECRET_KEY'] = app.config['SECRET_KEY']
+JWTManager(app)
 
 mail = Mail(app)
 serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])

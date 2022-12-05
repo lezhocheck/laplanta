@@ -2,7 +2,7 @@ import {Outlet} from 'react-router-dom'
 import {Helmet} from 'react-helmet';
 import Header from '../header/Header';
 import Footer from '../footer/Footer';
-import favicon from '../../static/favicon';
+import favicon from '../../static/favicon.png';
 
 const Layout = () => {
     return (

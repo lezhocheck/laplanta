@@ -4,6 +4,7 @@ from functools import wraps
 from flask import jsonify
 from bson.errors import InvalidId
 from typing import Union
+from flask_api import status
 
 
 regex_dict = {
@@ -33,7 +34,7 @@ class ValidationError(ResponseError):
 
     @property
     def status_code(self) -> int:
-        return 501   
+        return status.HTTP_401_UNAUTHORIZED
 
 
 class InvalidFormatError(ValidationError):
@@ -48,10 +49,10 @@ def exception_handler(func):
         try:
             result = func(*args, **kwargs)
             if result is None:
-                return jsonify({'message': 'Success'}), 200
-            return jsonify({'message': result}), 200   
+                return jsonify({'msg': 'Success'}), status.HTTP_200_OK
+            return jsonify({'msg': result}), status.HTTP_200_OK  
         except ResponseError as e:
-            return jsonify({'message': str(e)}), e.status_code    
+            return jsonify({'msg': str(e)}), e.status_code    
         except InvalidId:
-            return jsonify({'message': 'Invalid id passed'}), 504                 
+            return jsonify({'msg': 'Invalid id passed'}), status.HTTP_400_BAD_REQUEST               
     return decorated

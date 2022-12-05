@@ -3,8 +3,9 @@ flask-mail
 itsdangerous
 pymongo
 cerberus
-pyjwt
 typing-extensions
 python-dotenv
 langcodes
 flask-cors
+flask_jwt_extended
+flask_api

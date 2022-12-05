@@ -9,23 +9,36 @@ from itsdangerous import SignatureExpired
 from bson.objectid import ObjectId
 from werkzeug.security import check_password_hash
 from datetime import datetime
-from .token import IdToken, TokenError
+from .utils import ResponseError
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
+from flask_api import status
 
 
 auth = Blueprint('auth', __name__)
 
 
+class TokenError(ResponseError):
+    def __init__(self, message) -> None:
+        super().__init__(message)
+
+    @property
+    def status_code(self) -> int:
+        return status.HTTP_401_UNAUTHORIZED     
+
+
 def login_required(func):
     @wraps(func)
+    @jwt_required()
     @exception_handler
     def decorated(*args, **kwargs):
-        if 'x-access-token' not in request.headers:
+        identity = get_jwt_identity()
+        if not identity:
             raise TokenError('Token is missing')
-        token = IdToken.decode(request.headers['x-access-token'])
         db = Database()
-        if not db.user_exists(token.id):
+        id = ObjectId(identity)
+        if not db.user_exists(id):
             raise ValidationError(['token'])
-        return func(token.id, *args, **kwargs)    
+        return func(id, *args, **kwargs)    
     return decorated
 
 
@@ -58,8 +71,9 @@ def login():
     user_data = db.get_user(user_input.email)
     if not check_password_hash(user_data.password, user_input.password):
         raise ValidationError(['password'])     
-    token = IdToken.create(user_data.id)
-    return {'token': token.encode()}
+    token = create_access_token(identity=str(user_data.id))
+    refresh = create_refresh_token(identity=str(user_data.id))
+    return {'token': token, 'refresh': refresh}
 
 
 @auth.route('/user/confirmation', methods=['POST'])

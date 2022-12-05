@@ -7,6 +7,7 @@ from bson.objectid import ObjectId
 from typing import Union
 from flask import current_app
 from typing import Type
+from flask_api import status
 
 
 class DbError(ResponseError):
@@ -15,7 +16,7 @@ class DbError(ResponseError):
 
     @property
     def status_code(self) -> int:
-        return 502
+        return status.HTTP_400_BAD_REQUEST
 
 
 class Database:
