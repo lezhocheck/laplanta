@@ -4,6 +4,7 @@ import {AiOutlineHome, AiOutlineMail, AiOutlinePhone} from 'react-icons/ai';
 import {MDBFooter, MDBContainer, MDBRow, MDBCol} from 'mdb-react-ui-kit';
 import {BsFacebook, BsInstagram, BsTelegram, BsGithub, BsTwitter} from 'react-icons/bs';
 import {useTranslation} from 'react-i18next';
+import {Link} from 'react-router-dom';
 
 const Footer = () => {
     const {t} = useTranslation();
@@ -59,7 +60,7 @@ const Footer = () => {
             </section>
             <div className="text-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.05)" }}>
                 <span>© 2022 Copyright </span>
-                <a className="text-reset fw-bold" href="http://localhost:3000/">laplanta.com</a>
+                <Link to='/' className='text-secondary' style={{textDecoration: 'none'}}>laplanta.com</Link>
             </div>
         </MDBFooter>
     );

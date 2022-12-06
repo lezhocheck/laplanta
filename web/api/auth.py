@@ -23,7 +23,7 @@ class TokenError(ResponseError):
 
     @property
     def status_code(self) -> int:
-        return status.HTTP_401_UNAUTHORIZED     
+        return status.HTTP_403_FORBIDDEN  
 
 
 def login_required(func):
@@ -74,6 +74,14 @@ def login():
     token = create_access_token(identity=str(user_data.id))
     refresh = create_refresh_token(identity=str(user_data.id))
     return {'token': token, 'refresh': refresh}
+
+
+@auth.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    identity = get_jwt_identity()
+    token = create_access_token(identity=identity)
+    return {'token': token}
 
 
 @auth.route('/user/confirmation', methods=['POST'])

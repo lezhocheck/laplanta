@@ -13,7 +13,6 @@ const Layout = () => {
                 <link rel="icon" href={favicon}/>
                 <style>{"body { background-color: #212529; }"}</style>
             </Helmet>
-
             <Header/>
             <Outlet/>
             <Footer/>

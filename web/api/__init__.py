@@ -31,7 +31,7 @@ def init_env(app: Flask):
 
 
 app = Flask(__name__, static_folder='./static')
-CORS(app)
+CORS(app, supports_credentials=True)
 init_env(app)
 
 app.config['JWT_SECRET_KEY'] = app.config['SECRET_KEY']

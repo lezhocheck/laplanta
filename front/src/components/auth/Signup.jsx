@@ -6,11 +6,13 @@ import {FaCheck, FaTimes} from 'react-icons/fa';
 import {useRef, useState, useEffect} from 'react';
 import axios from '../../api/axios';
 import Alert from 'react-bootstrap/Alert';
+import {Link} from 'react-router-dom'
 
 const EMAIL_REGEX = /^([-!#-'*+/-9=?A-Z^-~]+(\.[-!#-'*+/-9=?A-Z^-~]+)*|\"([]!#-[^-~ \t]|(\\[\t -~]))+\")@([-!#-'*+/-9=?A-Z^-~]+(\.[-!#-'*+/-9=?A-Z^-~]+)*|\[[\t -Z^-~]*])$/;
 const USERNAME_REGEX = /^[a-zA-Z0-9._'ЁёА-Яа-я іІґҐїЇЄє]{3,23}$/;
 const TELEPHONE_REGEX = /^(\+\d{1,2}\s?)?1?\-?\.?\s?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
 const PASSWORD_REGEX = /^[a-zA-Z0-9._-ЁёА-Яа-яіІґҐїЇЄє]{4,24}$/;
+
 const REGISTER_ULR = '/user/signup';
 
 const Signup = () => {
@@ -84,7 +86,8 @@ const Signup = () => {
             const response = await axios.post(REGISTER_ULR, 
                 JSON.stringify({name: username, email, password, telephone}),
                 {
-                    headers: {'Content-Type': 'application/json'}
+                    headers: {'Content-Type': 'application/json'},
+                    withCredentials: true
                 }
             );
             setSuccess(true);
@@ -97,7 +100,7 @@ const Signup = () => {
             if (!e?.response) {
                 setErrorMessage("Cannot signup now");
             } else {
-                var message = e.response.data?.message;
+                var message = e.response.data?.msg;
                 setErrorMessage(message);
             }
         }
@@ -244,7 +247,7 @@ const Signup = () => {
             <div className={styles.login}>
                 <Button variant="dark" type="submit" disabled={!validEmail || !validUsername
                      || !validTelephone || !validPassword || !validMatchingPassword ? true : false} style={{width: '30%'}}>Signup</Button>
-                <p className="mb-5 pb-lg-2 text-dark">Already have an account? <a href="#!">Login here</a></p>
+                <p className="mb-5 pb-lg-2 text-dark">Already have an account? <Link to="/login">Login here</Link></p>
             </div>    
             </Form>
         </Auth>

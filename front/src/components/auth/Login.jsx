@@ -7,6 +7,7 @@ import useAuth from '../../hooks/useAuth';
 import axios from '../../api/axios';
 import {useNavigate, useLocation} from 'react-router-dom';
 import Alert from 'react-bootstrap/Alert';
+import {Link} from 'react-router-dom'
 
 const LOGIN_ULR = '/user/login';
 
@@ -18,7 +19,6 @@ const Login = () => {
     const from = location.state?.from?.pathname || "/";
 
     const emailRef = useRef();
-    const errorRef = useRef();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -38,12 +38,13 @@ const Login = () => {
             const response = await axios.post(LOGIN_ULR,
                 JSON.stringify({email, password}), 
                 {
-                    headers: {'Content-Type': 'application/json'}
+                    headers: {'Content-Type': 'application/json',
+                        withCredentials: true
+                    }
                 }
             );
-            const accessToken = response?.data?.message?.token;
+            const accessToken = response?.data?.msg?.token;
             setAuth({email, password, accessToken});
-            console.log(JSON.stringify(accessToken));
             setEmail('');
             setPassword('');
             navigate(from, {replace: true});
@@ -51,10 +52,9 @@ const Login = () => {
             if (!e?.response) {
                 setErrorMessage("Cannot login. Please try again");
             } else {
-                var message = e.response.data?.message;
+                var message = e.response.data?.msg;
                 setErrorMessage(message);
             }
-            errorRef.current.focus();
         }
     }
  
@@ -86,6 +86,7 @@ const Login = () => {
                     <Form.Control 
                         type="password" 
                         id="login-password" 
+                        placeholder="Enter your password" 
                         aria-describedby="login-password-helper"
                         required
                         onChange={(e) => setPassword(e.target.value)}
@@ -97,7 +98,7 @@ const Login = () => {
                 </Form.Group>
                 <div className={styles.login}>
                     <Button variant="dark" type="submit" style={{width: '30%'}}>Login</Button>
-                    <p className="mb-5 pb-lg-2 text-dark">Don't have an account? <a href="#!">Register here</a></p>
+                    <p className="mb-5 pb-lg-2 text-dark">Don't have an account? <Link to="/signup">Register here</Link></p>
                 </div>
             </Form>   
         </Auth>
