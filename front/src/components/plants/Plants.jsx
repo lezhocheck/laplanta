@@ -1,37 +1,45 @@
-import Table from 'react-bootstrap/Table';
+import PlantTable from './PlantTable';
+import {useState, useEffect} from 'react';
+import useAxiosPrivate from '../../hooks/useAxiosPrivate';
+import Container from 'react-bootstrap/Container';
 
 const Plants = () => {
+    const [plants, setPlants] = useState([]);
+    const axiosPrivate = useAxiosPrivate();
+
+    useEffect(() => {
+        let isMounted = true;
+        const controller = new AbortController();
+        const getPlants = async () => {
+            try {
+                const response = await axiosPrivate.get('/plants', {
+                    signal: controller.signal
+                });
+                isMounted && setPlants(response.data?.msg);
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        getPlants();
+
+        return () => {
+            isMounted = false;
+            controller.abort();
+        }
+    }, []);
+    
+
     return (
-        <div className="bg-light">
-            <Table striped bordered hover>
-                <thead>
-                    <tr>
-                    <th>#</th>
-                    <th>First Name</th>
-                    <th>Last Name</th>
-                    <th>Username</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                    <td>1</td>
-                    <td>Mark</td>
-                    <td>Otto</td>
-                    <td>@mdo</td>
-                    </tr>
-                    <tr>
-                    <td>2</td>
-                    <td>Jacob</td>
-                    <td>Thornton</td>
-                    <td>@fat</td>
-                    </tr>
-                    <tr>
-                    <td>3</td>
-                    <td colSpan={2}>Larry the Bird</td>
-                    <td>@twitter</td>
-                    </tr>
-                </tbody>
-            </Table>
+        <div className="bg-light" style={{height: 'auto'}}>
+            <Container>
+                <br/>
+                <h1>My plants</h1>
+                <br/>
+                <PlantTable plants={plants}/>
+            </Container>
         </div>
     );
 }
+
+export default Plants;

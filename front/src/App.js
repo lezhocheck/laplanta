@@ -8,6 +8,7 @@ import Signup from './components/auth/Signup';
 import Missing from './components/missing/Missing';
 import RequireAuth from './components/requireauth/RequireAuth';
 import Profile from './components/profile/Profile';
+import Plants from './components/plants/Plants';
 
 const App = () => {
     return (
@@ -21,6 +22,7 @@ const App = () => {
                 {/* TODO: Protected routes */}
                 <Route element={<RequireAuth/>}>
                     <Route path="profile" element={<Profile/>}/>
+                    <Route path="plants" element={<Plants/>}/>
                 </Route>
 
                 {/* Catch all */}

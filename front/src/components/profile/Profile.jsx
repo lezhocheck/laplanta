@@ -9,7 +9,7 @@ import {BsTelephone} from 'react-icons/bs';
 import Card from 'react-bootstrap/Card';
 import Button from 'react-bootstrap/Button';
 import ListGroup from 'react-bootstrap/ListGroup';
-import {useNavigate} from 'react-router-dom';
+import {useNavigate, Link} from 'react-router-dom';
 import useAuth from "../../hooks/useAuth";
 import bg from '../../static/bg1.jpeg';
 import chip from '../../static/chip.jpeg';
@@ -160,7 +160,11 @@ const Profile = () => {
                                             <Card.Text>
                                                 Currently observing: 0
                                             </Card.Text>
-                                        <Button variant="primary">More information</Button>
+                                        <Button variant="primary">
+                                            <Link to='/plants' className='text-light' style={{textDecoration: 'none'}}>
+                                                More information
+                                            </Link>
+                                        </Button>
                                     </Card.Body>
                                 </Card>
                             </Col>
@@ -172,7 +176,7 @@ const Profile = () => {
                                             <Card.Text>
                                                 Currently connected: 0
                                             </Card.Text>
-                                        <Button variant="primary">More information</Button>
+                                        <Button variant="primary" disabled>More information</Button>
                                     </Card.Body>
                                 </Card>
                             </Col>
