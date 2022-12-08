@@ -9,6 +9,7 @@ import Missing from './components/missing/Missing';
 import RequireAuth from './components/requireauth/RequireAuth';
 import Profile from './components/profile/Profile';
 import Plants from './components/plants/Plants';
+import Plant from './components/plant/Plant';
 
 const App = () => {
     return (
@@ -23,6 +24,7 @@ const App = () => {
                 <Route element={<RequireAuth/>}>
                     <Route path="profile" element={<Profile/>}/>
                     <Route path="plants" element={<Plants/>}/>
+                    <Route path="/plant/:id" element={<Plant/>}/>
                 </Route>
 
                 {/* Catch all */}

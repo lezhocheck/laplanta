@@ -38,7 +38,7 @@ const Header = () => {
                         <Link to="/profile" style={{textDecoration: 'none', color: 'white'}}>
                             <FaUserAlt size={18}/> 
                             {
-                                auth?.email ? ` Welcome, ${auth.email}` 
+                                auth?.email ? ` ${t("welcome")}, ${auth.email}` 
                                 : ` ${t("profile")}`
                             }
                         </Link>

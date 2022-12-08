@@ -6,7 +6,8 @@ import {FaCheck, FaTimes} from 'react-icons/fa';
 import {useRef, useState, useEffect} from 'react';
 import axios from '../../api/axios';
 import Alert from 'react-bootstrap/Alert';
-import {Link} from 'react-router-dom'
+import {Link, useNavigate} from 'react-router-dom'
+import {useTranslation} from 'react-i18next';
 
 const EMAIL_REGEX = /^([-!#-'*+/-9=?A-Z^-~]+(\.[-!#-'*+/-9=?A-Z^-~]+)*|\"([]!#-[^-~ \t]|(\\[\t -~]))+\")@([-!#-'*+/-9=?A-Z^-~]+(\.[-!#-'*+/-9=?A-Z^-~]+)*|\[[\t -Z^-~]*])$/;
 const USERNAME_REGEX = /^[a-zA-Z0-9._'ЁёА-Яа-я іІґҐїЇЄє]{3,23}$/;
@@ -16,7 +17,9 @@ const PASSWORD_REGEX = /^[a-zA-Z0-9._-ЁёА-Яа-яіІґҐїЇЄє]{4,24}$/;
 const REGISTER_ULR = '/user/signup';
 
 const Signup = () => {
+    const {t} = useTranslation();
     const emailRef = useRef();
+    const navigate = useNavigate();
 
     const [email, setEmail] = useState('');
     const [validEmail, setValidEmail] = useState(false);
@@ -39,7 +42,6 @@ const Signup = () => {
     const [matchingPasswordFocus, setMatchingPasswordFocus] = useState(false);
 
     const [errorMessage, setErrorMessage] = useState('');
-    const [success, setSuccess] = useState(false);
 
     useEffect(() => {
         emailRef.current.focus();
@@ -90,7 +92,7 @@ const Signup = () => {
                     withCredentials: true
                 }
             );
-            setSuccess(true);
+            navigate('/login');
             setEmail('');
             setUsername('');
             setTelephone('');
@@ -107,7 +109,7 @@ const Signup = () => {
     };
 
     return (
-        <Auth subtitle="Create new account">
+        <Auth subtitle={t("create_account")}>
             <Alert key="danger" variant="danger" aria-live="assertive"
                 className={errorMessage ? "d-block" : "d-none"}>
                 {errorMessage}
@@ -115,7 +117,7 @@ const Signup = () => {
             <Form onSubmit={handleSubmit} className={styles.input}>
                 <Form.Group>
                     <Form.Label htmlFor="signup-username">
-                        Username&nbsp;
+                        {t("username")}&nbsp;
                         <span className={validUsername ? "": "d-none"}>
                             <FaCheck color='green' size={16}/>
                         </span>
@@ -126,7 +128,7 @@ const Signup = () => {
                     <Form.Control 
                         type="text" 
                         id="signup-username" 
-                        placeholder="Enter your name" 
+                        placeholder={t("enter_your_name")}
                         aria-describedby="signup-username-helper"
                         required
                         onChange={(e) => setUsername(e.target.value)}
@@ -141,7 +143,7 @@ const Signup = () => {
                 </Form.Group>
                 <Form.Group>
                     <Form.Label htmlFor="signup-email">
-                        Email&nbsp;
+                        {t("email")}&nbsp;
                         <span className={validEmail ? "": "d-none"}>
                             <FaCheck color='green' size={16}/>
                         </span>
@@ -152,7 +154,7 @@ const Signup = () => {
                     <Form.Control 
                         type="text" 
                         id="signup-email" 
-                        placeholder="Enter your email" 
+                        placeholder={t("enter_your_email")}
                         ref={emailRef}
                         aria-describedby="signup-email-helper"
                         required
@@ -168,7 +170,7 @@ const Signup = () => {
                 </Form.Group>
                 <Form.Group>
                     <Form.Label htmlFor="signup-telephone">
-                        Telephone&nbsp;
+                        {t("phone")}&nbsp;
                         <span className={validTelephone ? "": "d-none"}>
                             <FaCheck color='green' size={16}/>
                         </span>
@@ -179,7 +181,7 @@ const Signup = () => {
                     <Form.Control 
                         type="tell" 
                         id="signup-telephone" 
-                        placeholder="Enter your telephone number" 
+                        placeholder={t("enter_your_phone")}
                         aria-describedby="signup-telephone-helper"
                         required
                         onChange={(e) => setTelephone(e.target.value)}
@@ -194,7 +196,7 @@ const Signup = () => {
                 </Form.Group>
                 <Form.Group>
                     <Form.Label htmlFor="signup-password">
-                        Password&nbsp;
+                        {t("password")}&nbsp;
                         <span className={validPassword ? "": "d-none"}>
                             <FaCheck color='green' size={16}/>
                         </span>
@@ -205,7 +207,7 @@ const Signup = () => {
                     <Form.Control 
                         type="password" 
                         id="signup-password" 
-                        placeholder="Come up with your password" 
+                        placeholder={t("enter_your_password")}
                         aria-describedby="signup-password-helper"
                         required
                         onChange={(e) => setPassword(e.target.value)}
@@ -220,7 +222,7 @@ const Signup = () => {
                 </Form.Group>
                 <Form.Group>
                     <Form.Label htmlFor="signup-matching-password">
-                        Confirm password&nbsp;
+                        {t("confirm_password")}&nbsp;
                         <span className={validMatchingPassword && matchingPassword ? "": "d-none"}>
                             <FaCheck color='green' size={16}/>
                         </span>
@@ -231,7 +233,7 @@ const Signup = () => {
                     <Form.Control 
                         type="password" 
                         id="signup-matching-password" 
-                        placeholder="Enter your password one more time" 
+                        placeholder={t("enter_your_password")}
                         aria-describedby="signup-matching-password-helper"
                         required
                         onChange={(e) => setMatchingPassword(e.target.value)}
@@ -246,8 +248,8 @@ const Signup = () => {
                 </Form.Group>
             <div className={styles.login}>
                 <Button variant="dark" type="submit" disabled={!validEmail || !validUsername
-                     || !validTelephone || !validPassword || !validMatchingPassword ? true : false} style={{width: '30%'}}>Signup</Button>
-                <p className="mb-5 pb-lg-2 text-dark">Already have an account? <Link to="/login">Login here</Link></p>
+                     || !validTelephone || !validPassword || !validMatchingPassword ? true : false} style={{width: '50%'}}>{t("signup")}</Button>
+                <p className="mb-5 pb-lg-2 text-dark">{t("already_have_account") + ' '}<Link to="/login">{t("login_here")}</Link></p>
             </div>    
             </Form>
         </Auth>

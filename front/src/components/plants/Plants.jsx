@@ -2,8 +2,10 @@ import PlantTable from './PlantTable';
 import {useState, useEffect} from 'react';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
 import Container from 'react-bootstrap/Container';
+import {useTranslation} from 'react-i18next';
 
 const Plants = () => {
+    const {t} = useTranslation();
     const [plants, setPlants] = useState([]);
     const axiosPrivate = useAxiosPrivate();
 
@@ -34,7 +36,7 @@ const Plants = () => {
         <div className="bg-light" style={{height: 'auto'}}>
             <Container>
                 <br/>
-                <h1>My plants</h1>
+                <h1>{t("my_plants")}</h1>
                 <br/>
                 <PlantTable plants={plants}/>
             </Container>

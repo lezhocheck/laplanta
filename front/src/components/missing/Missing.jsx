@@ -5,8 +5,11 @@ import styles from './Missing.module.scss';
 import {TbMoodCry} from 'react-icons/tb';
 import Button from 'react-bootstrap/Button';
 import {Link} from 'react-router-dom';
+import {useTranslation} from 'react-i18next';
 
 const Missing = () => {
+    const {t} = useTranslation();
+
     return (
         <Container className={styles.wrapper}>
             <Row>
@@ -15,15 +18,15 @@ const Missing = () => {
                 </Col>
                 <Col>
                     <Container className={styles.container}>
-                        <h1 className='text-light' style={{fontSize: '10rem'}}>Oops!</h1>
-                        <h5 className='text-light'>Page you are looking for does not exist</h5>
+                        <h1 className='text-light' style={{fontSize: '10rem'}}>{t("oops")}</h1>
+                        <h5 className='text-light'>{t("page_not_found")}</h5>
                     </Container>
                 </Col>
             </Row>
             <Row>
                 <Col className={styles.button}>
                     <Button variant="outline-light">
-                        <Link to='/' className='text-light' style={{textDecoration: 'none'}}>Go home</Link>
+                        <Link to='/' className='text-light' style={{textDecoration: 'none'}}>{t("go_home")}</Link>
                     </Button>
                 </Col>
             </Row>

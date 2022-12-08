@@ -185,14 +185,25 @@ class Sensor(BaseDto):
 class Record(BaseDto):
     def __init__(self, obj: dict) -> None:
         super().__init__(obj)
-        self.sensor_id = ObjectId(obj.get('sensor_id'))
+        sensor_id = obj.get('sensor_id')
+        self.sensor_id = ObjectId(sensor_id) if sensor_id else None
         self.sensor_status = obj.get('sensor_status')
         self.date = obj.get('date')
-        self.value = obj.get('value')
+        self.values = obj.get('values')
+        self.mean = obj.get('mean')
+        self.variance = obj.get('variance')
+        self.std_dev = obj.get('std_dev')
+        self.prediction = obj.get('prediction')
 
     @staticmethod
     def from_input_form(obj: dict) -> 'Record': 
-        schema = {'value': {'required': True}}
+        schema = {'values': {'required': True, 'type': 'list', 
+            'minlength': 2, 'schema': {'type': 'number'}},
+            'mean': {'required': True, 'type': 'number'},
+            'variance': {'required': True, 'type': 'number'},
+            'std_dev': {'required': True, 'type': 'number'},
+            'prediction': {'required': True, 'type': 'number'}
+        }
         BaseDto.validate(schema, obj)
         return Record(obj)
 
@@ -200,6 +211,10 @@ class Record(BaseDto):
         return {
             'sensor_id': str(self.sensor_id),
             'sensor_status': self.sensor_status,
-            'value': self.value,
+            'values': self.values,
+            'mean': self.mean,
+            'variance': self.variance,
+            'std_dev': self.std_dev,
+            'prediction': self.prediction,
             'date': self.date
-        }     
+        }

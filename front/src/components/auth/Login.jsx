@@ -7,11 +7,13 @@ import useAuth from '../../hooks/useAuth';
 import axios from '../../api/axios';
 import {useNavigate, useLocation} from 'react-router-dom';
 import Alert from 'react-bootstrap/Alert';
-import {Link} from 'react-router-dom'
+import {Link} from 'react-router-dom';
+import {useTranslation} from 'react-i18next';
 
 const LOGIN_ULR = '/user/login';
 
 const Login = () => {
+    const {t} = useTranslation();
     const {setAuth} = useAuth();
 
     const navigate = useNavigate();
@@ -59,18 +61,18 @@ const Login = () => {
     }
  
     return (
-        <Auth subtitle="Log into existing account">
+        <Auth subtitle={t("login_message")}>
             <Alert key="danger" variant="danger" aria-live="assertive"
                 className={errorMessage ? "d-block" : "d-none"}>
                 {errorMessage}
             </Alert>
             <Form onSubmit={handleSubmit} className={styles.input}>
                 <Form.Group>
-                    <Form.Label htmlFor="login-email">Email</Form.Label>
+                    <Form.Label htmlFor="login-email">{t("email")}</Form.Label>
                     <Form.Control 
                         type="text" 
                         id="login-email" 
-                        placeholder="Enter your email" 
+                        placeholder={t("enter_your_email")}
                         ref={emailRef}
                         aria-describedby="login-email-helper"
                         required
@@ -78,27 +80,27 @@ const Login = () => {
                         value={email}
                     />
                     <Form.Text id="login-email-helper" muted>
-                        i.e. john-doe@example.com
+                        {t("login_help")}
                     </Form.Text>
                 </Form.Group>
                 <Form.Group>
-                    <Form.Label htmlFor="login-password">Password</Form.Label>
+                    <Form.Label htmlFor="login-password">{t("password")}</Form.Label>
                     <Form.Control 
                         type="password" 
                         id="login-password" 
-                        placeholder="Enter your password" 
+                        placeholder={t("enter_your_password")}
                         aria-describedby="login-password-helper"
                         required
                         onChange={(e) => setPassword(e.target.value)}
                         value={password}
                     />
                     <Form.Text id="login-password-helper" muted>
-                        password must be at least 4 symbols long
+                        {t("password_help")}
                     </Form.Text>
                 </Form.Group>
                 <div className={styles.login}>
-                    <Button variant="dark" type="submit" style={{width: '30%'}}>Login</Button>
-                    <p className="mb-5 pb-lg-2 text-dark">Don't have an account? <Link to="/signup">Register here</Link></p>
+                    <Button variant="dark" type="submit" style={{width: '30%'}}>{t("login")}</Button>
+                    <p className="mb-5 pb-lg-2 text-dark">{t("no_account") + ' '} <Link to="/signup">{t("register_here")}</Link></p>
                 </div>
             </Form>   
         </Auth>
