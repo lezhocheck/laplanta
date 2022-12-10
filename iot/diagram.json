@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "author": "Олег Топорков",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-dht22", "id": "dht1", "top": -121.62, "left": -251.69, "attrs": {} },
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp1", "top": -92.6, "left": -534.35, "attrs": {} }
+  ],
+  "connections": [
+    [ "dht1:VCC", "esp1:3V3", "red", [ "v0" ] ],
+    [ "dht1:GND", "esp1:GND.1", "black", [ "v0" ] ],
+    [ "dht1:SDA", "esp1:D15", "green", [ "v0" ] ]
+  ]
+}
