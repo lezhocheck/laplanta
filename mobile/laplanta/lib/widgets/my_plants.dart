@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:laplanta/widgets/app_bar.dart';
 import 'package:laplanta/services/api.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:laplanta/main.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 class MyPlantsPage extends ConsumerStatefulWidget {
   const MyPlantsPage({super.key, required this.title});
@@ -48,7 +50,6 @@ class FixedColumnWidget extends StatelessWidget {
 }
 
 class ScrollableColumnWidget extends StatelessWidget {
-
   final Map<String, dynamic> data;
 
   const ScrollableColumnWidget({super.key, required this.data});
@@ -57,65 +58,64 @@ class ScrollableColumnWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-            headingRowColor: MaterialStateProperty.all(Colors.green[100]),
-            columnSpacing: 40,
-            decoration: const BoxDecoration(
-              border: Border(
-                right: BorderSide(
-                  color: Colors.grey,
-                  width: 0.5,
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+              headingRowColor: MaterialStateProperty.all(Colors.green[100]),
+              columnSpacing: 40,
+              decoration: const BoxDecoration(
+                border: Border(
+                  right: BorderSide(
+                    color: Colors.grey,
+                    width: 0.5,
+                  ),
                 ),
               ),
-            ),
-            columns: const [
-              DataColumn(label: Text('id')),
-              DataColumn(label: Text('name')),
-              DataColumn(label: Text('added_date')),
-              DataColumn(label: Text('description')),
-              DataColumn(label: Text('status'))
-            ],
-            rows: data["plants"]
-            .map<DataRow>((item) => DataRow(cells: <DataCell>[
-              DataCell(
-                    Container(
-                      alignment: AlignmentDirectional.center,
-                      child: Text(
-                        item["_id"].toString(),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                ))),
-                DataCell(
-                    Container(
-                      alignment: AlignmentDirectional.center,
-                      child: Text(
-                        item["name"].toString(),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                ))),
-                DataCell(
-                    Container(
-                      alignment: AlignmentDirectional.center,
-                      child: Text(
-                        item["added_date"].toString(),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                ))),
-                DataCell(
-                    Container(
-                      alignment: AlignmentDirectional.center,
-                      child: Text(
-                        item["description"].toString(),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                ))),
-                DataCell(
-                    Container(
-                      alignment: AlignmentDirectional.center,
-                      child: Text(
-                        item["status"].toString(),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                ))),
-                ]))
-            .toList())
-      ),
+              columns: const [
+                DataColumn(label: Text('id')),
+                DataColumn(label: Text('name')),
+                DataColumn(label: Text('added_date')),
+                DataColumn(label: Text('description')),
+                DataColumn(label: Text('status'))
+              ],
+              rows: data["plants"]
+                  .map<DataRow>((item) => DataRow(cells: <DataCell>[
+                        DataCell(Container(
+                            alignment: AlignmentDirectional.center,
+                            child: Text(
+                              item["_id"].toString(),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ))),
+                        DataCell(Container(
+                            alignment: AlignmentDirectional.center,
+                            child: Text(
+                              item["name"].toString(),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ))),
+                        DataCell(Container(
+                            alignment: AlignmentDirectional.center,
+                            child: Text(
+                              item["added_date"].toString(),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ))),
+                        DataCell(Container(
+                            alignment: AlignmentDirectional.center,
+                            child: Text(
+                              item["description"].toString(),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ))),
+                        DataCell(Container(
+                            alignment: AlignmentDirectional.center,
+                            child: Text(
+                              item["status"].toString(),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ))),
+                      ]))
+                  .toList())),
     );
   }
 }
@@ -157,18 +157,83 @@ class _MyPlantsPageState extends ConsumerState<MyPlantsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: LaplantaAppBar(
-        title: widget.title,
-      ),
-      body: SafeArea(
-          child: SingleChildScrollView(
-            child: Row(
-              children: [
-                //FixedColumnWidget(data: data),
-                ScrollableColumnWidget(data: data),
-              ],
-            ),
-          ),
-    ));
+        appBar: LaplantaAppBar(
+          title: widget.title,
+        ),
+        body: SingleChildScrollView(
+          child: Container(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                children: <Widget>[
+                  Column(
+                    children: [
+                      Row(
+                        children: const [
+                          SizedBox(
+                            height: 30,
+                          )
+                        ],
+                      ),
+                      Row(
+                        children: const [
+                          Text(
+                            "My plants",
+                            style: TextStyle(fontSize: 30),
+                          )
+                        ],
+                      ),
+                      const Divider(),
+                      SafeArea(
+                        child: SingleChildScrollView(
+                          child: Row(
+                            children: [
+                              //FixedColumnWidget(data: data),
+                              ScrollableColumnWidget(data: data),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Row(
+                        children: const [
+                          Text(
+                            "Account statistics",
+                            style: TextStyle(fontSize: 30),
+                          )
+                        ],
+                      ),
+                      const Divider(),
+                      SfCartesianChart(
+                        title: ChartTitle(text: "Plant records count"),
+                        primaryXAxis: CategoryAxis(
+                          labelIntersectAction: AxisLabelIntersectAction.rotate45,
+                        ),
+                        series: <ChartSeries>[
+                            RangeColumnSeries<PlantData, String>(
+                                dataSource: getChartData(data),
+                                xValueMapper: (PlantData data, _) => data.plantName,
+                                lowValueMapper: (PlantData data, _) => 0,
+                                highValueMapper: (PlantData data, _) => data.recordsCount,
+                            )
+                        ]
+                    )
+                    ],
+                  )
+                ],
+              )),
+        ));
   }
+}
+
+class PlantData {
+  PlantData(this.plantName, this.recordsCount);
+  final String plantName;
+  final int recordsCount;
+}
+
+List<PlantData> getChartData(Map<String, dynamic> data) {
+  var range = Random();
+
+  return data["plants"].map<PlantData>((x) =>
+  PlantData(x["name"], range.nextInt(20) + 1))
+   .toList();
 }
