@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class SidePanelHeader extends StatefulWidget {
-  const SidePanelHeader({super.key});
+  const SidePanelHeader({super.key, required this.user});
+  final Map<String, dynamic>? user;
 
   @override
   State<SidePanelHeader> createState() => _SidePanelHeaderState();
@@ -21,18 +22,15 @@ class _SidePanelHeaderState extends State<SidePanelHeader> {
           Container(
             margin: const EdgeInsets.only(bottom: 10),
             height: 70,
-            child: const Icon(
-              Icons.account_circle,
-              color: Colors.green,
-              size: 70.0
-            ),
-          ),
-          const Text(
-            "Rapid Tech",
-            style: TextStyle(color: Colors.white, fontSize: 20),
+            child: const Icon(Icons.account_circle,
+                color: Colors.green, size: 70.0),
           ),
           Text(
-            "info@rapidtech.dev",
+            widget.user!["name"].toString(),
+            style: const TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          Text(
+            widget.user!["email"].toString(),
             style: TextStyle(
               color: Colors.grey[200],
               fontSize: 14,
